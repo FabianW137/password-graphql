@@ -19,7 +19,7 @@ public class CorsConfig {
         CorsConfiguration cfg = new CorsConfiguration();
 
         // ⬇️ Trage hier deine erlaubten Origins ein (für Tests permissiv)
-        // Tipp Prod: setAllowedOrigins(List.of("https://dein-frontend.example"))
+        cfg.setAllowedOrigins(List.of("https://passwortmanager.onrender.com"));
         cfg.setAllowedOriginPatterns(List.of("*"));
 
         // Alle üblichen Methoden inkl. OPTIONS für Preflight:
