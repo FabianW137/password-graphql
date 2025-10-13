@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: pwm-graphql
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: BACKEND_BASE_URL
+        value: https://<your-backend-on-render>.onrender.com

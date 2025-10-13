@@ -1,0 +1,39 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  viewer: Viewer!
+  vaultItems: [VaultItem!]!
+  vaultItem(id: ID!): VaultItem
+}
+
+type Mutation {
+  createVaultItem(input: VaultUpsertInput!): VaultItem!
+  updateVaultItem(id: ID!, input: VaultUpsertInput!): VaultItem!
+  deleteVaultItem(id: ID!): Boolean!
+}
+
+type Viewer {
+  id: ID!
+}
+
+type VaultItem {
+  id: ID!
+  title: String!
+  username: String!
+  password: String!
+  url: String!
+  notes: String!
+  createdAt: String!
+  updatedAt: String
+}
+
+input VaultUpsertInput {
+  title: String
+  username: String
+  password: String
+  url: String
+  notes: String
+}
