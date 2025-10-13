@@ -18,7 +18,7 @@ public class VaultApiClient {
         this.web = backendWebClient;
     }
 
-    private WebClient.RequestHeadersSpec<?> withAuth(WebClient.RequestHeadersSpec<?> spec, String bearer) {
+    private <T extends WebClient.RequestHeadersSpec<T>> T withAuth(T spec, String bearer) {
         if (bearer != null && !bearer.isBlank()) {
             spec = spec.header(HttpHeaders.AUTHORIZATION, bearer);
         }
