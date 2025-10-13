@@ -1,42 +1,50 @@
-// src/main/java/com/example/pwm/graphql/GraphQLExceptionHandler.java
 package com.example.pwm.graphql;
 
-import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
-import org.springframework.graphql.execution.ErrorType;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
+import org.springframework.graphql.data.method.annotation.GraphQlExceptionHandler;
+import org.springframework.graphql.execution.ErrorType;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.server.ResponseStatusException;
 
-@Controller
+@ControllerAdvice
 public class GraphQLExceptionHandler {
 
     @GraphQlExceptionHandler(ResponseStatusException.class)
     public GraphQLError handleRse(ResponseStatusException ex) {
+        String msg = ex.getReason() != null ? ex.getReason() : ex.getStatusCode().toString();
+        ErrorType type = ex.getStatusCode().is4xxClientError()
+                ? ErrorType.BAD_REQUEST
+                : ErrorType.INTERNAL_ERROR;
         return GraphqlErrorBuilder.newError()
-                .errorType(ErrorType.BAD_REQUEST)
-                .message(ex.getReason() != null ? ex.getReason() : ex.getStatusCode().toString())
+                .errorType(type)
+                .message(msg)
                 .build();
     }
 
-    @GraphQlExceptionHandler(WebClientResponseException.class)
-    public GraphQLError handleWebClient(WebClientResponseException ex) {
-        ex.getResponseBodyAsString();
-        String msg = !ex.getResponseBodyAsString().isBlank()
-                ? ex.getResponseBodyAsString()
-                : ex.getStatusCode().toString();
+    @GraphQlExceptionHandler(WebClientResponseException.BadGateway.class)
+    public GraphQLError handleBadGateway(WebClientResponseException.BadGateway ex) {
         return GraphqlErrorBuilder.newError()
-                .errorType(ex.getStatusCode().is4xxClientError() ? ErrorType.BAD_REQUEST : ErrorType.INTERNAL_ERROR)
-                .message(msg)
+                .errorType(ErrorType.INTERNAL_ERROR)
+                .message("Backend vorübergehend nicht erreichbar (502). Bitte kurz später erneut versuchen.")
+                .build();
+    }
+
+    @GraphQlExceptionHandler(WebClientRequestException.class)
+    public GraphQLError handleRequest(WebClientRequestException ex) {
+        return GraphqlErrorBuilder.newError()
+                .errorType(ErrorType.INTERNAL_ERROR)
+                .message("Keine Verbindung zum Backend (" + ex.getClass().getSimpleName() + ").")
                 .build();
     }
 
     @GraphQlExceptionHandler(Exception.class)
     public GraphQLError handleAll(Exception ex) {
         return GraphqlErrorBuilder.newError()
-                .errorType(ErrorType.BAD_REQUEST)
-                .message(ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName())
+                .errorType(ErrorType.INTERNAL_ERROR)
+                .message(ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage())
                 .build();
     }
 }
