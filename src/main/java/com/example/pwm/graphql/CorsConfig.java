@@ -1,50 +1,45 @@
 package com.example.pwm.graphql;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
-import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Configuration
 public class CorsConfig {
 
     @Bean
-    public CorsWebFilter corsWebFilter(
-            @Value("${app.cors.allowed-origin-patterns:*}") String originPatternsCsv,
-            @Value("${app.cors.allow-credentials:false}") boolean allowCredentials,
-            @Value("${app.cors.max-age-seconds:86400}") long maxAgeSeconds
-    ) {
+    @Order(Ordered.HIGHEST_PRECEDENCE) // CORS soll vor allen anderen Filtern laufen
+    public CorsWebFilter corsWebFilter() {
         CorsConfiguration cfg = new CorsConfiguration();
 
-        // Patterns aus Properties einlesen (CSV -> List)
-        List<String> originPatterns = Arrays.stream(originPatternsCsv.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
+        // ⬇️ Trage hier deine erlaubten Origins ein (für Tests permissiv)
+        // Tipp Prod: setAllowedOrigins(List.of("https://dein-frontend.example"))
+        cfg.setAllowedOriginPatterns(List.of("*"));
 
-        // Wichtig: Bei allowCredentials=true keine "*" Origins verwenden.
-        // allowedOriginPatterns erlaubt Wildcards wie "https://*.onrender.com"
-        cfg.setAllowedOriginPatterns(originPatterns);
+        // Alle üblichen Methoden inkl. OPTIONS für Preflight:
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
-        // GraphQL nutzt idR GET/POST; OPTIONS für Preflight
-        cfg.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
-        // Erlaube alle angefragten Header (z.B. Authorization, apollo-* etc.)
+        // Erlaube alle Request-Header (verhindert 405/403 wegen ungewhitelisteter Header)
         cfg.setAllowedHeaders(List.of("*"));
-        // Nützliche Response-Header für den Browser freigeben
-        cfg.setExposedHeaders(List.of("Location", "Link", "Content-Disposition", "Authorization"));
 
-        cfg.setAllowCredentials(allowCredentials);
-        cfg.setMaxAge(Duration.ofSeconds(maxAgeSeconds));
+        // Falls du Cookies/Sessions nutzt -> true UND KEIN "*"-Origin verwenden!
+        // Für Bearer-Token reicht in der Regel false.
+        cfg.setAllowCredentials(false);
+
+        // Optional: nützliche Response-Header exponieren
+        cfg.setExposedHeaders(List.of("Location", "Link"));
+
+        // Preflight-Cache im Browser
+        cfg.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Falls du es enger fassen willst, kannst du hier auf "/graphql" und "/graphiql/**" einschränken.
+        // Global auf alle Pfade anwenden, inkl. /graphql
         source.registerCorsConfiguration("/**", cfg);
 
         return new CorsWebFilter(source);
