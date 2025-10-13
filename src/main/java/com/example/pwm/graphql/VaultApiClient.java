@@ -1,10 +1,9 @@
-// src/main/java/com/example/pwm/graphql/VaultApiClient.java
 package com.example.pwm.graphql;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -31,29 +30,29 @@ public class VaultApiClient {
     }
 
     private WebClient.RequestHeadersSpec<?> withAuth(WebClient.RequestHeadersSpec<?> spec, String authHeader) {
-        return spec.headers(h -> { if (authHeader != null && !authHeader.isBlank()) h.set(HttpHeaders.AUTHORIZATION, authHeader); });
+        return spec.headers(h -> {
+            if (authHeader != null && !authHeader.isBlank()) {
+                h.set(HttpHeaders.AUTHORIZATION, authHeader);
+            }
+        });
     }
 
-    // ---- Calls ----
-
-    public List<Dtos.VaultItem> list(String authHeader) {
+    public Mono<List<Dtos.VaultItem>> list(String authHeader) {
         return withAuth(http.get().uri("/api/vault"), authHeader)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, this::mapError)
                 .bodyToFlux(Dtos.VaultItem.class)
-                .collectList()
-                .block();
+                .collectList();
     }
 
-    public Dtos.VaultItem get(Long id, String authHeader) {
+    public Mono<Dtos.VaultItem> get(Long id, String authHeader) {
         return withAuth(http.get().uri("/api/vault/{id}", id), authHeader)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, this::mapError)
-                .bodyToMono(Dtos.VaultItem.class)
-                .block();
+                .bodyToMono(Dtos.VaultItem.class);
     }
 
-    public Dtos.VaultItem create(Dtos.VaultUpsertInput input, String authHeader) {
+    public Mono<Dtos.VaultItem> create(Dtos.VaultUpsertInput input, String authHeader) {
         return withAuth(
                 http.post().uri("/api/vault")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -61,11 +60,10 @@ public class VaultApiClient {
                 authHeader)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, this::mapError)
-                .bodyToMono(Dtos.VaultItem.class)
-                .block();
+                .bodyToMono(Dtos.VaultItem.class);
     }
 
-    public Dtos.VaultItem update(Long id, Dtos.VaultUpsertInput input, String authHeader) {
+    public Mono<Dtos.VaultItem> update(Long id, Dtos.VaultUpsertInput input, String authHeader) {
         return withAuth(
                 http.put().uri("/api/vault/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -73,16 +71,14 @@ public class VaultApiClient {
                 authHeader)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, this::mapError)
-                .bodyToMono(Dtos.VaultItem.class)
-                .block();
+                .bodyToMono(Dtos.VaultItem.class);
     }
 
-    public Boolean delete(Long id, String authHeader) {
-        withAuth(http.delete().uri("/api/vault/{id}", id), authHeader)
+    public Mono<Boolean> delete(Long id, String authHeader) {
+        return withAuth(http.delete().uri("/api/vault/{id}", id), authHeader)
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, this::mapError)
                 .toBodilessEntity()
-                .block();
-        return true;
+                .thenReturn(true);
     }
 }
