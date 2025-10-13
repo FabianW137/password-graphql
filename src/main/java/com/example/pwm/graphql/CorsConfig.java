@@ -18,7 +18,6 @@ public class CorsConfig {
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration cfg = new CorsConfiguration();
 
-        // ⬇️ Trage hier deine erlaubten Origins ein (für Tests permissiv)
         cfg.setAllowedOrigins(List.of("https://passwortmanager.onrender.com"));
         cfg.setAllowedOriginPatterns(List.of("*"));
 
