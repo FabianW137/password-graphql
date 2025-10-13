@@ -18,12 +18,20 @@ public class VaultApiClient {
         this.web = backendWebClient;
     }
 
-    private <T extends WebClient.RequestHeadersSpec<T>> T withAuth(T spec, String bearer) {
-        if (bearer != null && !bearer.isBlank()) {
-            spec = spec.header(HttpHeaders.AUTHORIZATION, bearer);
-        }
-        return spec;
-    }
+    private WebClient.RequestHeadersSpec<?> withAuth(WebClient.RequestHeadersSpec<?> spec, String bearer) {
+                if (bearer != null && !bearer.isBlank()) {
+                        spec = spec.header(HttpHeaders.AUTHORIZATION, bearer);
+                  }
+                return spec;
+            }
+
+            // Für POST/PUT/PATCH (behält RequestBodySpec, damit .contentType/.bodyValue verfügbar bleiben)
+           private WebClient.RequestBodySpec withAuth(WebClient.RequestBodySpec spec, String bearer) {
+                if (bearer != null && !bearer.isBlank()) {
+                        spec = spec.header(HttpHeaders.AUTHORIZATION, bearer);
+                    }
+                return spec;
+            }
 
     public List<Dtos.VaultItem> list(String bearer) {
         try {
