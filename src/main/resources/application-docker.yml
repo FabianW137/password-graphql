@@ -1,0 +1,22 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  graphql:
+    path: /graphql
+    graphiql:
+      enabled: false   # Prod meist aus
+
+backend:
+  base-url: ${BACKEND_BASE_URL}
+
+logging:
+  level:
+    org.springframework.graphql: INFO
+    org.springframework.web.reactive.function.client: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

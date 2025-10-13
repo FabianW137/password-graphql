@@ -1,111 +1,88 @@
+// src/main/java/com/example/pwm/graphql/VaultApiClient.java
 package com.example.pwm.graphql;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Map;
 
-@Service
+@Component
 public class VaultApiClient {
-    private final WebClient web;
 
-    public VaultApiClient(WebClient backendWebClient) {
-        this.web = backendWebClient;
+    private final WebClient http;
+
+    public VaultApiClient(WebClient.Builder builder,
+                          @Value("${backend.base-url}") String baseUrl) {
+        this.http = builder.baseUrl(baseUrl).build();
     }
 
-    private WebClient.RequestHeadersSpec<?> withAuth(WebClient.RequestHeadersSpec<?> spec, String bearer) {
-                if (bearer != null && !bearer.isBlank()) {
-                        spec = spec.header(HttpHeaders.AUTHORIZATION, bearer);
-                  }
-                return spec;
-            }
-
-            // Für POST/PUT/PATCH (behält RequestBodySpec, damit .contentType/.bodyValue verfügbar bleiben)
-           private WebClient.RequestBodySpec withAuth(WebClient.RequestBodySpec spec, String bearer) {
-                if (bearer != null && !bearer.isBlank()) {
-                        spec = spec.header(HttpHeaders.AUTHORIZATION, bearer);
-                    }
-                return spec;
-            }
-
-    public List<Dtos.VaultItem> list(String bearer) {
-        try {
-            return withAuth(web.get().uri("/api/vault"), bearer)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .bodyToFlux(Dtos.VaultItem.class)
-                    .collectList()
-                    .block();
-        } catch (WebClientResponseException ex) {
-            throw new RuntimeException(ex.getResponseBodyAsString(), ex);
-        }
+    private Mono<? extends Throwable> mapError(ClientResponse res) {
+        HttpStatusCode sc = res.statusCode();
+        return res.bodyToMono(String.class)
+                .defaultIfEmpty(sc.toString())
+                .map(body -> new ResponseStatusException(sc, body));
     }
 
-    public Dtos.VaultItem get(Long id, String bearer) {
-        try {
-            return withAuth(web.get().uri("/api/vault/{id}", id), bearer)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .bodyToMono(Dtos.VaultItem.class)
-                    .block();
-        } catch (WebClientResponseException ex) {
-            throw new RuntimeException(ex.getResponseBodyAsString(), ex);
-        }
+    private WebClient.RequestHeadersSpec<?> withAuth(WebClient.RequestHeadersSpec<?> spec, String authHeader) {
+        return spec.headers(h -> { if (authHeader != null && !authHeader.isBlank()) h.set(HttpHeaders.AUTHORIZATION, authHeader); });
     }
 
-    public Dtos.VaultItem create(Dtos.VaultUpsertInput in, String bearer) {
-        try {
-            return withAuth(web.post().uri("/api/vault"), bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .bodyValue(in)
-                    .retrieve()
-                    .bodyToMono(Dtos.VaultItem.class)
-                    .block();
-        } catch (WebClientResponseException ex) {
-            throw new RuntimeException(ex.getResponseBodyAsString(), ex);
-        }
+    // ---- Calls ----
+
+    public List<Dtos.VaultItem> list(String authHeader) {
+        return withAuth(http.get().uri("/api/vault"), authHeader)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, this::mapError)
+                .bodyToFlux(Dtos.VaultItem.class)
+                .collectList()
+                .block();
     }
 
-    public Dtos.VaultItem update(Long id, Dtos.VaultUpsertInput in, String bearer) {
-        try {
-            return withAuth(web.patch().uri("/api/vault/{id}", id), bearer)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .bodyValue(in)
-                    .retrieve()
-                    .bodyToMono(Dtos.VaultItem.class)
-                    .block();
-        } catch (WebClientResponseException ex) {
-            // optional: fallback to PUT, if backend uses PUT
-            try {
-                return withAuth(web.put().uri("/api/vault/{id}", id), bearer)
+    public Dtos.VaultItem get(Long id, String authHeader) {
+        return withAuth(http.get().uri("/api/vault/{id}", id), authHeader)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, this::mapError)
+                .bodyToMono(Dtos.VaultItem.class)
+                .block();
+    }
+
+    public Dtos.VaultItem create(Dtos.VaultUpsertInput input, String authHeader) {
+        return withAuth(
+                http.post().uri("/api/vault")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .bodyValue(in)
-                        .retrieve()
-                        .bodyToMono(Dtos.VaultItem.class)
-                        .block();
-            } catch (WebClientResponseException ex2) {
-                throw new RuntimeException(ex2.getResponseBodyAsString(), ex2);
-            }
-        }
+                        .bodyValue(input),
+                authHeader)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, this::mapError)
+                .bodyToMono(Dtos.VaultItem.class)
+                .block();
     }
 
-    public boolean delete(Long id, String bearer) {
-        try {
-            withAuth(web.delete().uri("/api/vault/{id}", id), bearer)
-                    .retrieve()
-                    .toBodilessEntity()
-                    .block();
-            return true;
-        } catch (WebClientResponseException ex) {
-            throw new RuntimeException(ex.getResponseBodyAsString(), ex);
-        }
+    public Dtos.VaultItem update(Long id, Dtos.VaultUpsertInput input, String authHeader) {
+        return withAuth(
+                http.put().uri("/api/vault/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(input),
+                authHeader)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, this::mapError)
+                .bodyToMono(Dtos.VaultItem.class)
+                .block();
+    }
+
+    public Boolean delete(Long id, String authHeader) {
+        withAuth(http.delete().uri("/api/vault/{id}", id), authHeader)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, this::mapError)
+                .toBodilessEntity()
+                .block();
+        return true;
     }
 }

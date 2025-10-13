@@ -8,9 +8,8 @@ import org.springframework.http.HttpHeaders;
 
 @Configuration
 public class AuthContextConfig {
-
     @Bean
-    public WebGraphQlInterceptor authHeaderToContext() {
+    WebGraphQlInterceptor authHeaderToContext() {
         return (webInput, chain) -> {
             String auth = webInput.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
             if (auth != null && !auth.isBlank()) {

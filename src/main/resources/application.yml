@@ -6,6 +6,16 @@ spring:
     path: /graphql
     graphiql:
       enabled: true
+
+# <<< WICHTIG fürs Gateway <<<
+backend:
+  base-url: http://localhost:8081
+
+logging:
+  level:
+    org.springframework.graphql: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+
 management:
   endpoints:
     web:
