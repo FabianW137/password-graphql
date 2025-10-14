@@ -13,7 +13,6 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 
@@ -22,92 +21,83 @@ public class VaultApiClient {
 
     private final WebClient http;
 
-    public VaultApiClient(
-            WebClient.Builder builder,
-            // robustes Binding: ENV BACKEND_BASE_URL > backend.base-url > default localhost
-            @Value("${BACKEND_BASE_URL:${backend.base-url:http://localhost:8081}}") String baseUrl
-    ) {
+    public VaultApiClient(WebClient.Builder builder,
+                          @Value("${backend.base-url}") String baseUrl) {
         this.http = builder
                 .baseUrl(baseUrl)
-                .defaultHeaders(h -> h.setAccept(List.of(MediaType.APPLICATION_JSON)))
+                .defaultHeaders(h -> h.set(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
                 .build();
     }
 
-    private Mono<? extends Throwable> mapError(ClientResponse res) {
-        HttpStatusCode sc = res.statusCode();
-        return res.bodyToMono(String.class)
-                .defaultIfEmpty(sc.toString())
-                .map(body -> new ResponseStatusException(sc, body));
-    }
-
     private WebClient.RequestHeadersSpec<?> withAuth(WebClient.RequestHeadersSpec<?> spec, String authHeader) {
-        return spec.headers(h -> {
-            if (authHeader != null && !authHeader.isBlank()) {
-                h.set(HttpHeaders.AUTHORIZATION, authHeader);
-            }
-        });
+        if (authHeader != null && !authHeader.isBlank()) {
+            // Ensure it is "Bearer <token>"
+            String v = authHeader.startsWith("Bearer ") ? authHeader : "Bearer " + authHeader;
+            return spec.header(HttpHeaders.AUTHORIZATION, v);
+        }
+        return spec;
     }
 
-    private boolean isTransient(Throwable t) {
-        if (t instanceof WebClientResponseException wcre) {
-            int s = wcre.getStatusCode().value();
-            return s == 502 || s == 503 || s == 504;
-        }
-        if (t instanceof WebClientRequestException) return true; // DNS/Connect/Timeout
-        return t instanceof IOException;
+    private Mono<? extends Throwable> mapError(ClientResponse res) {
+        return res.bodyToMono(String.class).defaultIfEmpty("")
+                .flatMap(body -> {
+                    String msg = body;
+                    if (msg.isBlank()) msg = "Upstream error: HTTP " + res.statusCode();
+                    return Mono.error(new ResponseStatusException(res.statusCode(), msg));
+                });
     }
 
     private <T> Mono<T> withRetry(Mono<T> mono) {
-        // kurze Backoff-Retries bügeln Render-Coldstarts und kurze Hiccups aus
         return mono.retryWhen(
-                Retry.backoff(2, Duration.ofMillis(250))
-                        .maxBackoff(Duration.ofSeconds(2))
-                        .filter(this::isTransient)
+                Retry.backoff(2, Duration.ofMillis(200))
+                        .filter(ex -> ex instanceof WebClientRequestException ||
+                                (ex instanceof WebClientResponseException w && w.getStatusCode().is5xxServerError()))
         );
     }
 
-    public Mono<List<Dtos.VaultItem>> list(String authHeader) {
+    public record VaultItem(Long id, String title, String username, String password, String url, String notes,
+                            String createdAt, String updatedAt) {}
+
+    public record VaultUpsertInput(String title, String username, String password, String url, String notes) {}
+
+    public Mono<List<VaultItem>> list(String authHeader) {
         return withRetry(
                 withAuth(http.get().uri("/api/vault"), authHeader)
                         .retrieve()
                         .onStatus(HttpStatusCode::isError, this::mapError)
-                        .bodyToFlux(Dtos.VaultItem.class)
+                        .bodyToFlux(VaultItem.class)
                         .collectList()
         );
     }
 
-    public Mono<Dtos.VaultItem> get(Long id, String authHeader) {
+    public Mono<VaultItem> get(Long id, String authHeader) {
         return withRetry(
                 withAuth(http.get().uri("/api/vault/{id}", id), authHeader)
                         .retrieve()
                         .onStatus(HttpStatusCode::isError, this::mapError)
-                        .bodyToMono(Dtos.VaultItem.class)
+                        .bodyToMono(VaultItem.class)
         );
     }
 
-    public Mono<Dtos.VaultItem> create(Dtos.VaultUpsertInput input, String authHeader) {
+    public Mono<VaultItem> create(VaultUpsertInput input, String authHeader) {
         return withRetry(
-                withAuth(
-                        http.post().uri("/api/vault")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .bodyValue(input),
-                        authHeader)
+                withAuth(http.post().uri("/api/vault"), authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(input)
                         .retrieve()
                         .onStatus(HttpStatusCode::isError, this::mapError)
-                        .bodyToMono(Dtos.VaultItem.class)
+                        .bodyToMono(VaultItem.class)
         );
     }
 
-    public Mono<Dtos.VaultItem> update(Long id, Dtos.VaultUpsertInput input, String authHeader) {
+    public Mono<VaultItem> update(Long id, VaultUpsertInput input, String authHeader) {
         return withRetry(
-                withAuth(
-                        http.put().uri("/api/vault/{id}", id)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .bodyValue(input),
-                        authHeader)
+                withAuth(http.put().uri("/api/vault/{id}", id), authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(input)
                         .retrieve()
                         .onStatus(HttpStatusCode::isError, this::mapError)
-                        .bodyToMono(Dtos.VaultItem.class)
+                        .bodyToMono(VaultItem.class)
         );
     }
 

@@ -7,9 +7,9 @@ spring:
     graphiql:
       enabled: true
 
-# <<< WICHTIG fürs Gateway <<<
+# Use env var in production (Render): BACKEND_BASE_URL
 backend:
-  base-url: http://localhost:8081
+  base-url: ${BACKEND_BASE_URL:https://password-backend-fc0k.onrender.com}
 
 logging:
   level:
