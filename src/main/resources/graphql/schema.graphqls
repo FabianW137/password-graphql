@@ -22,12 +22,11 @@ type Viewer {
 type VaultItem {
   id: ID!
   title: String!
-  username: String!
-  password: String!
-  url: String!
-  notes: String!
-  createdAt: String!
-  updatedAt: String
+  username: String
+  password: String
+  url: String
+  notes: String
+  createdAt: String
 }
 
 input VaultUpsertInput {
