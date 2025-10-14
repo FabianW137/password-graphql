@@ -14,11 +14,11 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         return http
-                .cors(cors -> {})          // CORS aktivieren (nimmt den CorsWebFilter mit)
-                .csrf(csrf -> csrf.disable()) // Bei reiner API/GraphQL i.d.R. aus
+                .cors(cors -> {})                 // CORS aktiv
+                .csrf(csrf -> csrf.disable())     // CSRF aus für API
                 .authorizeExchange(reg -> reg
-                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Preflight erlauben
-                        .pathMatchers("/graphql").authenticated() // falls Auth nötig
+                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // Preflight erlauben
+                        .pathMatchers("/graphql", "/graphiql", "/voyager").permitAll()
                         .anyExchange().permitAll()
                 )
                 .build();
