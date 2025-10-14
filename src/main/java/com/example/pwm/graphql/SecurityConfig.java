@@ -18,7 +18,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Bei reiner API/GraphQL i.d.R. aus
                 .authorizeExchange(reg -> reg
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Preflight erlauben
-                        // .pathMatchers("/graphql").authenticated() // falls Auth nötig
+                        .pathMatchers("/graphql").authenticated() // falls Auth nötig
                         .anyExchange().permitAll()
                 )
                 .build();
