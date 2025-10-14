@@ -29,20 +29,19 @@ public class VaultApiClient {
                 .build();
     }
 
-    private WebClient.RequestHeadersSpec<?> withAuth(WebClient.RequestHeadersSpec<?> spec, String authHeader) {
+    private void setAuthHeader(HttpHeaders headers, String authHeader) {
         if (authHeader != null && !authHeader.isBlank()) {
-            // Ensure it is "Bearer <token>"
             String v = authHeader.startsWith("Bearer ") ? authHeader : "Bearer " + authHeader;
-            return spec.header(HttpHeaders.AUTHORIZATION, v);
+            headers.set(HttpHeaders.AUTHORIZATION, v);
         }
-        return spec;
     }
 
     private Mono<? extends Throwable> mapError(ClientResponse res) {
         return res.bodyToMono(String.class).defaultIfEmpty("")
                 .flatMap(body -> {
-                    String msg = body;
-                    if (msg.isBlank()) msg = "Upstream error: HTTP " + res.statusCode();
+                    String msg = (body == null || body.isBlank())
+                            ? ("Upstream error: HTTP " + res.statusCode())
+                            : body;
                     return Mono.error(new ResponseStatusException(res.statusCode(), msg));
                 });
     }
@@ -55,55 +54,62 @@ public class VaultApiClient {
         );
     }
 
-    public record VaultItem(Long id, String title, String username, String password, String url, String notes,
-                            String createdAt, String updatedAt) {}
+    // -------- CRUD --------
 
-    public record VaultUpsertInput(String title, String username, String password, String url, String notes) {}
-
-    public Mono<List<VaultItem>> list(String authHeader) {
+    public Mono<List<Dtos.VaultItem>> list(String authHeader) {
         return withRetry(
-                withAuth(http.get().uri("/api/vault"), authHeader)
+                http.get()
+                        .uri("/api/vault")
+                        .headers(h -> setAuthHeader(h, authHeader))
                         .retrieve()
                         .onStatus(HttpStatusCode::isError, this::mapError)
-                        .bodyToFlux(VaultItem.class)
+                        .bodyToFlux(Dtos.VaultItem.class)
                         .collectList()
         );
     }
 
-    public Mono<VaultItem> get(Long id, String authHeader) {
+    public Mono<Dtos.VaultItem> get(Long id, String authHeader) {
         return withRetry(
-                withAuth(http.get().uri("/api/vault/{id}", id), authHeader)
+                http.get()
+                        .uri("/api/vault/{id}", id)
+                        .headers(h -> setAuthHeader(h, authHeader))
                         .retrieve()
                         .onStatus(HttpStatusCode::isError, this::mapError)
-                        .bodyToMono(VaultItem.class)
+                        .bodyToMono(Dtos.VaultItem.class)
         );
     }
 
-    public Mono<VaultItem> create(VaultUpsertInput input, String authHeader) {
+    public Mono<Dtos.VaultItem> create(Dtos.VaultUpsertInput input, String authHeader) {
         return withRetry(
-                withAuth(http.post().uri("/api/vault"), authHeader)
-                        .contentType(MediaType.APPLICATION_JSON)
+                http.post()
+                        .uri("/api/vault")
+                        .contentType(MediaType.APPLICATION_JSON)      // <- vor bodyValue setzen
+                        .headers(h -> setAuthHeader(h, authHeader))   // <- Auth-Header hier injizieren
                         .bodyValue(input)
                         .retrieve()
                         .onStatus(HttpStatusCode::isError, this::mapError)
-                        .bodyToMono(VaultItem.class)
+                        .bodyToMono(Dtos.VaultItem.class)
         );
     }
 
-    public Mono<VaultItem> update(Long id, VaultUpsertInput input, String authHeader) {
+    public Mono<Dtos.VaultItem> update(Long id, Dtos.VaultUpsertInput input, String authHeader) {
         return withRetry(
-                withAuth(http.put().uri("/api/vault/{id}", id), authHeader)
+                http.put()
+                        .uri("/api/vault/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
+                        .headers(h -> setAuthHeader(h, authHeader))
                         .bodyValue(input)
                         .retrieve()
                         .onStatus(HttpStatusCode::isError, this::mapError)
-                        .bodyToMono(VaultItem.class)
+                        .bodyToMono(Dtos.VaultItem.class)
         );
     }
 
     public Mono<Boolean> delete(Long id, String authHeader) {
         return withRetry(
-                withAuth(http.delete().uri("/api/vault/{id}", id), authHeader)
+                http.delete()
+                        .uri("/api/vault/{id}", id)
+                        .headers(h -> setAuthHeader(h, authHeader))
                         .retrieve()
                         .onStatus(HttpStatusCode::isError, this::mapError)
                         .toBodilessEntity()

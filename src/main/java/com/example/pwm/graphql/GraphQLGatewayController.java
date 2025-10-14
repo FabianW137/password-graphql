@@ -19,23 +19,9 @@ public class GraphQLGatewayController {
     }
 
     @QueryMapping
-    public Mono<Dtos.Viewer> viewer(@ContextValue(name = "Authorization", required = false) String authHeader) {
-        // einfacher Platzhalter; wenn du willst, extrahiere hier den Token
-        String id = (authHeader == null || authHeader.isBlank()) ? "anonymous" : "viewer";
-        return Mono.just(new Dtos.Viewer(id));
-    }
-
-    @QueryMapping
     public Mono<List<Dtos.VaultItem>> vaultItems(
             @ContextValue(name = "Authorization", required = false) String authHeader) {
         return client.list(authHeader);
-    }
-
-    @QueryMapping
-    public Mono<Dtos.VaultItem> vaultItem(
-            @Argument Long id,
-            @ContextValue(name = "Authorization", required = false) String authHeader) {
-        return client.get(id, authHeader);
     }
 
     @MutationMapping
