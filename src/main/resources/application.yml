@@ -7,17 +7,26 @@ spring:
     graphiql:
       enabled: true
 
-# Use env var in production (Render): BACKEND_BASE_URL
-backend:
-  base-url: ${BACKEND_BASE_URL:https://password-backend-fc0k.onrender.com}
+  # R2DBC (App)
+  r2dbc:
+    url: ${R2DBC_URL:}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+    pool:
+      enabled: true
+      initial-size: 5
+      max-size: 20
+
+  # Flyway (JDBC) nur für Migrationen
+  flyway:
+    enabled: true
+    url: ${JDBC_URL:}
+    user: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+    locations: classpath:db/migration
 
 logging:
   level:
-    org.springframework.graphql: DEBUG
-    org.springframework.web.reactive.function.client: DEBUG
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
+    org.springframework.graphql: INFO
+    org.springframework.r2dbc: INFO
+    org.springframework.web: INFO

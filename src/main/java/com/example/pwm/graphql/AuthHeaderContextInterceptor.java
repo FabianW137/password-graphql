@@ -1,6 +1,5 @@
 package com.example.pwm.graphql;
 
-import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.graphql.server.*;
