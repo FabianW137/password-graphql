@@ -1,6 +1,5 @@
-package com.example.pwm.graphql.service;
+package com.example.pwm.graphql.crypto;
 
-import com.example.pwm.graphql.service.CryptoService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

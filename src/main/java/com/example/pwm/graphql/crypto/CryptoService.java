@@ -1,4 +1,4 @@
-package com.example.pwm.graphql.service;
+package com.example.pwm.graphql.crypto;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKeyFactory;

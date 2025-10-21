@@ -1,6 +1,7 @@
 package com.example.pwm.graphql.service;
 
 import com.example.pwm.graphql.Dtos;
+import com.example.pwm.graphql.crypto.CryptoService;
 import com.example.pwm.graphql.db.VaultItemEntity;
 import com.example.pwm.graphql.db.VaultItemRepository;
 import org.springframework.stereotype.Service;
