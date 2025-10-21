@@ -10,16 +10,39 @@ import java.util.List;
 
 @Configuration
 public class CorsConfig {
+
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOriginPatterns(List.of("*"));
-        cfg.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-User-Id"));
+
+        // Falls du NUR deinen Frontend-Host erlauben willst: trage ihn hier ein.
+        // Mit Origin-Patterns kannst du Ports/localhost wildkarten.
+        cfg.setAllowedOriginPatterns(List.of(
+                "https://passwortmanager.onrender.com",
+                "http://localhost:*",
+                "http://127.0.0.1:*"
+        ));
+
+        // Wir nutzen keine Cookies/Sessions -> Credentials aus.
         cfg.setAllowCredentials(false);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
-        return new CorsWebFilter(source);
+        // Preflight + reale Methoden
+        cfg.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+
+        // WICHTIG: eigene Header zulassen (X-User-Id / Authorization)
+        cfg.setAllowedHeaders(List.of(
+                "Content-Type", "Authorization", "X-User-Id",
+                "X-Requested-With", "Accept", "Origin"
+        ));
+
+        // Optional: sichtbare Response-Header
+        cfg.setExposedHeaders(List.of("Content-Type"));
+
+        // Wie lange der Preflight gecacht werden darf
+        cfg.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
+        src.registerCorsConfiguration("/**", cfg);
+        return new CorsWebFilter(src);
     }
 }

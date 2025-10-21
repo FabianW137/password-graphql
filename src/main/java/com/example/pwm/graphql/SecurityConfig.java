@@ -16,12 +16,11 @@ public class SecurityConfig {
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .cors(Customizer.withDefaults())                 // <- CORS aktivieren
                 .authorizeExchange(ex -> ex
-                        .pathMatchers(HttpMethod.OPTIONS).permitAll()
-                        .pathMatchers("/graphiql", "/graphql").permitAll()
+                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll() // <- Preflight erlauben
                         .anyExchange().permitAll()
                 )
-                .httpBasic(Customizer.withDefaults())
                 .build();
     }
 }
