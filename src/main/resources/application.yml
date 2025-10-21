@@ -24,7 +24,8 @@ spring:
     user: ${DB_USERNAME:}
     password: ${DB_PASSWORD:}
     locations: classpath:db/migration
-
+    baseline-on-migrate: true
+    baseline-version: 0
 logging:
   level:
     org.springframework.graphql: INFO
