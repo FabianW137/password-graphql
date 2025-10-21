@@ -14,10 +14,12 @@ import java.util.UUID;
 public class VaultService {
 
     private final VaultItemRepository repo;
+    private final CryptoService crypto;
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_INSTANT;
 
-    public VaultService(VaultItemRepository repo) {
+    public VaultService(VaultItemRepository repo, CryptoService crypto) {
         this.repo = repo;
+        this.crypto = crypto;
     }
 
     private static String nn(String s) { return (s == null) ? "" : s; }
@@ -47,24 +49,26 @@ public class VaultService {
     public Mono<Dtos.VaultItem> create(UUID ownerId, Dtos.VaultUpsertEncInput in) {
         VaultItemEntity e = new VaultItemEntity();
         e.setOwnerId(ownerId);
-        e.setTitleEnc(nn(in.titleEnc()));
-        e.setUsernameEnc(nn(in.usernameEnc()));
-        e.setPasswordEnc(nn(in.passwordEnc()));
-        e.setUrlEnc(nn(in.urlEnc()));
-        e.setNotesEnc(nn(in.notesEnc()));
-        // created_at/updated_at kommen per DB-Defaults/Trigger
+
+        // <<< WICHTIG: immer verschlüsseln (oder verschlüsselt belassen) >>>
+        e.setTitleEnc(   crypto.ensureEncrypted(ownerId, in.titleEnc()));
+        e.setUsernameEnc(crypto.ensureEncrypted(ownerId, in.usernameEnc()));
+        e.setPasswordEnc(crypto.ensureEncrypted(ownerId, in.passwordEnc()));
+        e.setUrlEnc(     crypto.ensureEncrypted(ownerId, in.urlEnc()));
+        e.setNotesEnc(   crypto.ensureEncrypted(ownerId, in.notesEnc()));
+
         return repo.save(e).map(this::toDto);
     }
 
     public Mono<Dtos.VaultItem> update(UUID ownerId, Long id, Dtos.VaultUpsertEncInput in) {
         return repo.findByIdAndOwnerId(id, ownerId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("VaultItem nicht gefunden oder nicht Eigentümer")))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("VaultItem nicht gefunden oder falscher Owner")))
                 .flatMap(e -> {
-                    if (in.titleEnc()    != null) e.setTitleEnc(nn(in.titleEnc()));
-                    if (in.usernameEnc() != null) e.setUsernameEnc(nn(in.usernameEnc()));
-                    if (in.passwordEnc() != null) e.setPasswordEnc(nn(in.passwordEnc()));
-                    if (in.urlEnc()      != null) e.setUrlEnc(nn(in.urlEnc()));
-                    if (in.notesEnc()    != null) e.setNotesEnc(nn(in.notesEnc()));
+                    if (in.titleEnc()    != null) e.setTitleEnc(   crypto.ensureEncrypted(ownerId, in.titleEnc()));
+                    if (in.usernameEnc() != null) e.setUsernameEnc(crypto.ensureEncrypted(ownerId, in.usernameEnc()));
+                    if (in.passwordEnc() != null) e.setPasswordEnc(crypto.ensureEncrypted(ownerId, in.passwordEnc()));
+                    if (in.urlEnc()      != null) e.setUrlEnc(     crypto.ensureEncrypted(ownerId, in.urlEnc()));
+                    if (in.notesEnc()    != null) e.setNotesEnc(   crypto.ensureEncrypted(ownerId, in.notesEnc()));
                     return repo.save(e);
                 })
                 .map(this::toDto);
@@ -72,7 +76,7 @@ public class VaultService {
 
     public Mono<Boolean> delete(UUID ownerId, Long id) {
         return repo.findByIdAndOwnerId(id, ownerId)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("VaultItem nicht gefunden oder nicht Eigentümer")))
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("VaultItem nicht gefunden oder falscher Owner")))
                 .flatMap(e -> repo.deleteById(e.getId()).thenReturn(true));
     }
 }
