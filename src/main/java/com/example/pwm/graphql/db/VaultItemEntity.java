@@ -37,7 +37,8 @@ public class VaultItemEntity {
     @Column("updated_at")
     private Instant updatedAt;
 
-    // Getter/Setter
+    // --- getters/setters ---
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

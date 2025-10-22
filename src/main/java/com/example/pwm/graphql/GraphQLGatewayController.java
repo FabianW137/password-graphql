@@ -39,7 +39,7 @@ public class GraphQLGatewayController {
     ) {
         UUID owner = requireOwnerId(authHeader, xUserId);
         // HIER war der Fehler: VaultService hat listByOwner(UUID), nicht list(UUID)
-        return service.listByOwner(owner);
+        return service.list(owner);
     }
 
     @QueryMapping
@@ -49,7 +49,7 @@ public class GraphQLGatewayController {
             @ContextValue(name = "X-User-Id", required = false) String xUserId
     ) {
         UUID owner = requireOwnerId(authHeader, xUserId);
-        return service.getById(owner, id);
+        return service.get(owner, id);
     }
 
     // --- Mutations ---

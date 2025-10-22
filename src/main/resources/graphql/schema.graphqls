@@ -10,7 +10,7 @@ type Query {
 }
 
 type Mutation {
-  createVaultItem(input: VaultUpsertEncInput!): VaultItem!
+  createVaultItem(input: VaultUpsertEncInput!): VaultItem
   updateVaultItem(id: ID!, input: VaultUpsertEncInput!): VaultItem!
   deleteVaultItem(id: ID!): Boolean!
 }
