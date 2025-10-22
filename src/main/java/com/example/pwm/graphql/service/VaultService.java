@@ -17,11 +17,13 @@ public class VaultService {
 
     private final VaultItemRepository repo;
     private final CryptoService crypto;
+    private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_INSTANT;
 
     public VaultService(VaultItemRepository repo, CryptoService crypto) {
         this.repo = repo;
         this.crypto = crypto;
     }
+
 
     public Flux<Dtos.VaultItem> list(UUID ownerId) {
         return repo.findAllByOwnerIdOrderByCreatedAtDesc(ownerId)
@@ -61,7 +63,6 @@ public class VaultService {
                     if (in.urlEnc()      != null) e.setUrlEnc(     crypto.ensureEncrypted(ownerId, in.urlEnc()));
                     if (in.notesEnc()    != null) e.setNotesEnc(   crypto.ensureEncrypted(ownerId, in.notesEnc()));
 
-                    // >>> FIX: updatedAt immer aktualisieren
                     e.setUpdatedAt(Instant.now());
 
                     return repo.save(e);
@@ -83,17 +84,21 @@ public class VaultService {
                 : DateTimeFormatter.ISO_INSTANT.format(t);
     }
 
+    private static String nn(String s) { return (s == null) ? "" : s; }
+    private String dec(UUID ownerId, String s) { return nn(crypto.decrypt(ownerId, s)); }
+
     private Dtos.VaultItem toDto(VaultItemEntity e) {
+        UUID ownerId = e.getOwnerId();
         return new Dtos.VaultItem(
                 e.getId(),
-                e.getOwnerId() != null ? e.getOwnerId().toString() : null,
-                e.getTitleEnc(),
-                e.getUsernameEnc(),
-                e.getPasswordEnc(),
-                e.getUrlEnc(),
-                e.getNotesEnc(),
-                iso(e.getCreatedAt()),
-                iso(e.getUpdatedAt())
+                (ownerId != null ? ownerId.toString() : null),
+                dec(ownerId, e.getTitleEnc()),
+                dec(ownerId, e.getUsernameEnc()),
+                dec(ownerId, e.getPasswordEnc()),
+                dec(ownerId, e.getUrlEnc()),
+                dec(ownerId, e.getNotesEnc()),
+                ISO.format(e.getCreatedAt()),
+                ISO.format(e.getUpdatedAt())
         );
     }
 }
