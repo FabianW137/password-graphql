@@ -19,6 +19,7 @@ public class CorsConfig {
         // Mit Origin-Patterns kannst du Ports/localhost wildkarten.
         cfg.setAllowedOriginPatterns(List.of(
                 "https://passwortmanager.onrender.com",
+                "https://spa-angular-1.onrender.com",
                 "http://localhost:*",
                 "http://127.0.0.1:*"
         ));
