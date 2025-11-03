@@ -7,7 +7,6 @@ spring:
     graphiql:
       enabled: true
 
-  # R2DBC (App)
   r2dbc:
     url: ${R2DBC_URL:}
     username: ${DB_USERNAME:}
@@ -17,7 +16,6 @@ spring:
       initial-size: 5
       max-size: 20
 
-  # Flyway (JDBC) nur für Migrationen
   flyway:
     enabled: true
     url: ${JDBC_URL:}

@@ -5,7 +5,7 @@ spring:
   graphql:
     path: /graphql
     graphiql:
-      enabled: false   # Prod meist aus
+      enabled: false   
 
 backend:
   base-url: ${BACKEND_BASE_URL}

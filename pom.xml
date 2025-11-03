@@ -25,7 +25,6 @@
   </properties>
 
   <dependencies>
-    <!-- GraphQL + WebFlux -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-graphql</artifactId>
@@ -35,19 +34,16 @@
       <artifactId>spring-boot-starter-webflux</artifactId>
     </dependency>
 
-    <!-- Reactive DB -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-r2dbc</artifactId>
     </dependency>
-    <!-- R2DBC Treiber: Postgres -->
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>r2dbc-postgresql</artifactId>
     </dependency>
 
 
-    <!-- Flyway (JDBC) für Migrationen -->
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
@@ -58,19 +54,16 @@
       <artifactId>flyway-database-postgresql</artifactId>
       <version>${flyway.version}</version>
     </dependency>
-    <!-- JDBC-Treiber für Flyway -->
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
-    <!-- Security (WebFlux) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
 
-    <!-- Test -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

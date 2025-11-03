@@ -21,7 +21,7 @@ public class GraphQLGatewayController {
         this.service = service;
     }
 
-    // --- Queries ---
+
 
     @QueryMapping
     public Mono<Dtos.Viewer> viewer(
@@ -38,7 +38,6 @@ public class GraphQLGatewayController {
             @ContextValue(name = "X-User-Id", required = false) String xUserId
     ) {
         UUID owner = requireOwnerId(authHeader, xUserId);
-        // HIER war der Fehler: VaultService hat listByOwner(UUID), nicht list(UUID)
         return service.list(owner);
     }
 
@@ -52,7 +51,6 @@ public class GraphQLGatewayController {
         return service.get(owner, id);
     }
 
-    // --- Mutations ---
 
     @MutationMapping
     public Mono<Dtos.VaultItem> createVaultItem(
@@ -85,12 +83,7 @@ public class GraphQLGatewayController {
         return service.delete(owner, id);
     }
 
-    // --- Owner-Ermittlung ---
 
-    /**
-     * Verwendet bevorzugt die (vom Interceptor gesetzte) X-User-Id.
-     * Fällt zurück auf Extraktion aus Authorization (UUID-Token oder JWT-Claim sub|userId|user_id|uid).
-     */
     private static UUID requireOwnerId(String authHeader, String xUserId) {
         if (xUserId != null && !xUserId.isBlank()) {
             try { return UUID.fromString(xUserId.trim()); }
@@ -109,10 +102,8 @@ public class GraphQLGatewayController {
         }
         String token = auth.substring(7).trim();
 
-        // Reiner UUID-Token?
         try { return UUID.fromString(token); } catch (IllegalArgumentException ignore) {}
 
-        // JWT?
         int d1 = token.indexOf('.');
         int d2 = token.indexOf('.', d1 + 1);
         if (d1 > 0 && d2 > d1) {
@@ -131,7 +122,6 @@ public class GraphQLGatewayController {
         return null;
     }
 
-    // sehr einfache Claim-Extraktion für String-Werte: "key":"value"
     private static String findJsonStringValue(String json, String key) {
         String needle = "\"" + key + "\"";
         int i = json.indexOf(needle);
